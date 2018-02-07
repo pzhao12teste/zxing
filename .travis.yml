@@ -1,47 +1,51 @@
-language: java
-sudo: false
-install: mvn -Ptravis -DskipTests=true -B -V install
-script:
-  - mvn -Ptravis ${JACOCO} test
-  - find $HOME/.m2/repository/com/google/zxing -path "*SNAPSHOT/*" -delete
-  - find $HOME/.m2/repository/com/google/zxing -name "*SNAPSHOT" -type d -delete
-matrix:
- include:
-   # Covers Java 7, Open JDK, and code coverage
-   - jdk: openjdk7
-     env: JACOCO=-Pjacoco
-   # Covers Java 8, Oracle JDK, Android apps
-   - jdk: oraclejdk8
-     env: ANDROID_HOME=$HOME/android-sdk-linux
-     before_install: if [ ! -d $HOME/android-sdk-linux/platforms ]; then curl -s https://storage.googleapis.com/zxing-build/android-sdk-linux.tar.bz2 | bunzip2 | tar xf - -C $HOME; else ls -l $HOME/android-sdk-linux; fi
-   # Covers Java 9
-   - jdk: oraclejdk9
+after_success: if [ -n "$JACOCO" ]; then bash <(curl -s https://codecov.io/bash);
+  fi
+before_cache:
+- rm -rf $HOME/CACHE; find $TRAVIS_BUILD_DIR -name .ekstazi | while read line; do
+  du -sh $line;         DIR=$(dirname $HOME/CACHE$line); mkdir -p $DIR; cp -r $line
+  $DIR; done
+- echo CACHESIZE $(du -sk $HOME/CACHE)
+- cp /tmp/classpathFile $HOME/CACHE/classpathFile
+before_install:
+- if [ "$TRAVIS_OS_NAME" == "osx" ];        then sed -i '' 's/<gib.enabled>true/<gib.enabled>false/'
+  $TRAVIS_BUILD_DIR/pom.xml;        else sed -i 's/<gib.enabled>true/<gib.enabled>false/'
+  $TRAVIS_BUILD_DIR/pom.xml;        fi
+- find $HOME/CACHE -name .ekstazi | while read line; do du -sh $line;         DIR=$(dirname
+  ${line#$HOME/CACHE}); if [[ -d ${DIR#.ekstazi/} ]]; then cp -r $line $DIR; fi; done
+before_script:
+- find $TRAVIS_BUILD_DIR -name .ekstazi | while read line; do rm -rf $line; done
+- find $HOME/CACHE -name .ekstazi | while read line; do du -sh $line;         DIR=$(dirname
+  ${line#$HOME/CACHE}); if [[ -d ${DIR#.ekstazi/} ]]; then cp -r $line $DIR; fi; done
+- if [ "$TRAVIS_OS_NAME" == "osx" ];    then sed -i '' 's/<gib.enabled>false/<gib.enabled>true/'
+  $TRAVIS_BUILD_DIR/pom.xml;    else sed -i 's/<gib.enabled>false/<gib.enabled>true/'
+  $TRAVIS_BUILD_DIR/pom.xml;    fi
+- if [[ -e $HOME/CACHE/classpathFile ]]; then cp $HOME/CACHE/classpathFile /tmp/;
+  fi
 cache:
   directories:
-    - $HOME/.m2
-    - $HOME/android-sdk-linux
+  - $HOME/.m2
+  - $HOME/android-sdk-linux
+  - $HOME/CACHE
 git:
   depth: 10
-after_success: if [ -n "$JACOCO" ]; then bash <(curl -s https://codecov.io/bash); fi
-
-# The Android SDK package android-sdk-linux.tar.bz2 above is built roughly like so:
-#
-# mkdir android-sdk-linux; cd android-sdk-linux
-# curl -O https://dl.google.com/android/repository/tools_r25.2.3-linux.zip
-# unzip *.zip; rm *.zip
-#
-# # Or different, more recent versions; see sdkmanager --list
-# ./tools/bin/sdkmanager "platforms;android-22" "build-tools;25.0.2"
-# # Accept license
-#
-# ./tools/bin/sdkmanager --update
-# # Accept license
-#
-# cp tools/source.properties ..
-#
-# ./tools/bin/sdkmanager --uninstall tools
-#
-# mkdir tools; mv ../source.properties tools
-#
-# cd ..
-# tar cf - android-sdk-linux | bzip2 -9 > android-sdk-linux.tar.bz2
+install: mvn -Ptravis -DskipTests=true -B -V install
+language: java
+matrix:
+  include:
+  - env: JACOCO=-Pjacoco
+    jdk: openjdk7
+  - before_install: if [ ! -d $HOME/android-sdk-linux/platforms ]; then curl -s https://storage.googleapis.com/zxing-build/android-sdk-linux.tar.bz2
+      | bunzip2 | tar xf - -C $HOME; else ls -l $HOME/android-sdk-linux; fi
+    env: ANDROID_HOME=$HOME/android-sdk-linux
+    jdk: oraclejdk8
+  - jdk: oraclejdk9
+script:
+- touch /tmp/NOW
+- echo GIBSTUDYSTART $(date)
+- mvn -Ptravis ${JACOCO} test
+- find $HOME/.m2/repository/com/google/zxing -path "*SNAPSHOT/*" -delete
+- find $HOME/.m2/repository/com/google/zxing -name "*SNAPSHOT" -type d -delete
+- echo GIBSTUDYEND $(date)
+- cd $TRAVIS_BUILD_DIR
+- echo TESTNUM $(find . -name TEST-*.xml -newer /tmp/NOW | wc -l)
+sudo: false
