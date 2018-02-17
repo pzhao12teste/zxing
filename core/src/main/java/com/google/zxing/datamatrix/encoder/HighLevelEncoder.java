@@ -188,10 +188,7 @@ public final class HighLevelEncoder {
     int len = context.getCodewordCount();
     context.updateSymbolInfo();
     int capacity = context.getSymbolInfo().getDataCapacity();
-    if (len < capacity &&
-        encodingMode != ASCII_ENCODATION &&
-        encodingMode != BASE256_ENCODATION &&
-        encodingMode != EDIFACT_ENCODATION) {
+    if (len < capacity && encodingMode != ASCII_ENCODATION && encodingMode != BASE256_ENCODATION) {
       context.writeCodeword('\u00fe'); //Unlatch (254)
     }
     //Padding

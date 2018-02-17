@@ -196,11 +196,7 @@ public final class VCardResultParser extends ResultParser {
         if ("uri".equals(valueType)) {
           // Don't actually support dereferencing URIs, but use scheme-specific part not URI
           // as value, to support tel: and mailto:
-          try {
-            element = URI.create(element).getSchemeSpecificPart();
-          } catch (IllegalArgumentException iae) {
-            // ignore
-          }
+          element = URI.create(element).getSchemeSpecificPart();
         }
         if (metadata == null) {
           List<String> match = new ArrayList<>(1);
